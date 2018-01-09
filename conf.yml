@@ -1,0 +1,10 @@
+websites:
+  hec_fr:
+    domain: http://www.hec.fr
+    sitemap: sitemap-fr.xml
+    output_file: `date +%d-%m-%Y`-hec.fr-sitemap.txt
+    404_only: true
+  hec_edu:
+    domain: http://www.hec.edu
+    sitemap: sitemap-en.xml
+    output_file: `date +%d-%m-%Y`-hec.en-sitemap.txt
