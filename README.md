@@ -1,19 +1,19 @@
 # Sitemap bash crawler
 
-bash tool to crawl page links in a sitmap.xml
+bash tool to crawl websites page links in a sitemap.xml
 
-usage :
+### usage :
 
     ./crawl.sh <option>
 
-options :
+### options :
 
 |option|details|required|
 |:-----:|:-------|:----:|
 |-w/--website=<website_conf_name> | crawl a website defined in conf.yml properties | yes (no if -a provided)|
 |-a/--all | crawl all websites listed in website_list and in website properties| yes (no if -w provided)|
 
-Conf.yml file :
+### Conf.yml file :
 
 the crawl.sh reads the conf.yml file, which has to have the following structure :
 
@@ -33,3 +33,11 @@ websites:
     sitemap: sitemap.xml
     output_file: `date +%d-%m-%Y`-dummy-sitemap.txt
 ```
+
+
+---
+
+### Used tools:
+- [Progress Bar](https://github.com/fearside/ProgressBar)
+- [YAML parsing & config](https://github.com/jasperes/bash-yaml)
+- [Console Colors from ReaperSoon's (& my colab) EurekaPackager - not used for now](https://github.com/ReaperSoon/EurekaPackager)

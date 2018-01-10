@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# usage: test_url.sh www.site.com/sitemap.xml
-#curl -s $1 | grep -Po 'http(s?)://[^ \"()\<>]*' | xargs -n 1 curl -s -o /dev/null -w "%{url_effective},%{http_code}\n"
-#grep -Po 'http(s?)://[^ \"()\<>]*' sitemap.xml | xargs -n 1 curl -s -o /dev/null -w "%{url_effective},%{http_code}\n"
 Color_Off='\033[0m'       # Text Reset
 Black='\033[0;30m'        # Black
 Red='\033[0;31m'          # Red
@@ -17,11 +14,11 @@ Underline='\033[4m'       # Underline text
 
 result_dir='results'
 
-# progressBar
+# credits : https://github.com/fearside/ProgressBar
 # $1 : current value
-# $2: max; value
+# $2: max. value
 # $3: additional info
-ProgressBar() {
+progress_bar() {
     # Process data
     let _progress=(${1}*100/${2}*100)/100
     let _done=(${_progress}*4)/10
@@ -31,10 +28,6 @@ ProgressBar() {
     _empty=$(printf "%${_left}s")
     [[ -n "$3" ]] && extra=" | ${3}"
 
-
-    # 1.2 Build progressbar strings and print the ProgressBar line
-    # 1.2.1 Output example:
-    # 1.2.1.1 Progress : [########################################] 100%
     printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%% ( checked: ${1}/${2} | elapsed time: $(convertsecs ${SECONDS}) ${extra} )"
 }
 
@@ -80,14 +73,15 @@ create_variables() {
     eval "$(parse_yaml "$yaml_file")"
 }
 
+# print seconds passed in $1 in human readable h:m:s format
 convertsecs() {
     printf $(date -d@${1} -u +%H:%M:%S)
 }
 
 usage(){
     echo -e "./crawl.sh <option>"
-    echo -e "-w|--website=<website_conf_name> : \t crawl a website defined in conf.yml properties"
-    echo -e "-a|--all : \t crawl all websites defined in conf.yml properties (listed in 'website_list')"
+    echo -e "-a|--all : \t\t\t crawl all websites defined in conf.yml properties (listed in 'website_list')"
+    echo -e "-w|--website=<website_conf_name> :  crawl a website defined in conf.yml properties"
 }
 
 check_conf(){
@@ -104,21 +98,22 @@ check_conf(){
     done
 }
 
-# crawl site in sitemap
+# crawl website's sitemap
 # $1 : site name in conf.yml
 crawl_site(){
     domain=websites_${1}_domain
     sitemap=websites_${1}_sitemap
     output=websites_${1}_output_file
-    crawl_sitemap="${!domain}/${!sitemap}"
-    only_404=websites_${1}_404_only
     output="${result_dir}/${!output}"
+
+    only_404=websites_${1}_404_only
+    crawl_sitemap="${!domain}/${!sitemap}"
 
     echo "crawling ${crawl_sitemap}"
     [[ "${!only_404}" == 'true' ]] && errored_only=0
     [ $errored_only ] \
-        && echo "getting only 404 error pages" \
-        || echo "getting all"
+        && echo "checking only for 404 error pages" \
+        || echo "checking all sitemap"
 
     echo "fetching page list..."
     site_list=$(curl -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
@@ -127,6 +122,7 @@ crawl_site(){
     estimated=$(echo ${site_count}*${time}*10 | bc)
     SECONDS=0
     counter=1
+    count_404=0
     rm ${output} 2> /dev/null
 
     echo "Number of pages to crawl : ${site_count}"
@@ -136,10 +132,12 @@ crawl_site(){
             && curl ${i} -s -o /dev/null -w "%{url_effective},%{http_code}\n" | grep ",404" >> ${output} \
             || curl ${i} -s -o /dev/null -w "%{url_effective},%{http_code}\n" >> ${output}
 
-        count_404=$(tail -1 ${output}  | grep ",404" | wc -l)
-        ProgressBar ${counter} ${site_count} "found ${count_404} 404errors"
+        tail -1 ${output} | grep ",404" &> /dev/null
+        [ $? == 0 ] && count_404=$((count_404 + 1))
+        progress_bar ${counter} ${site_count} "found ${count_404} 404errors"
         counter=$((counter + 1))
     done
+    echo
     echo "Crawl finished! see results in '${result_dir}/${!output}'"
 }
 
