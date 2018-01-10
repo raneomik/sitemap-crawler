@@ -3,9 +3,42 @@
 # usage: test_url.sh www.site.com/sitemap.xml
 #curl -s $1 | grep -Po 'http(s?)://[^ \"()\<>]*' | xargs -n 1 curl -s -o /dev/null -w "%{url_effective},%{http_code}\n"
 #grep -Po 'http(s?)://[^ \"()\<>]*' sitemap.xml | xargs -n 1 curl -s -o /dev/null -w "%{url_effective},%{http_code}\n"
+Color_Off='\033[0m'       # Text Reset
+Black='\033[0;30m'        # Black
+Red='\033[0;31m'          # Red
+Green='\033[0;32m'        # Green
+Yellow='\033[0;33m'       # Yellow
+Blue='\033[0;34m'         # Blue
+Purple='\033[0;35m'       # Purple
+Cyan='\033[0;36m'         # Cyan
+White='\033[0;37m'        # White
+Bold='\033[1m'            # Bold text
+Underline='\033[4m'       # Underline text
+
+result_dir='results'
+
+# progressBar
+# $1 : current value
+# $2: max; value
+# $3: additional info
+ProgressBar() {
+    # Process data
+    let _progress=(${1}*100/${2}*100)/100
+    let _done=(${_progress}*4)/10
+    let _left=40-$_done
+    # Build progressbar string lengths
+    _fill=$(printf "%${_done}s")
+    _empty=$(printf "%${_left}s")
+    [[ -n "$3" ]] && extra=" | ${3}"
+
+
+    # 1.2 Build progressbar strings and print the ProgressBar line
+    # 1.2.1 Output example:
+    # 1.2.1.1 Progress : [########################################] 100%
+    printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%% ( checked: ${1}/${2} | elapsed time: $(convertsecs ${SECONDS}) ${extra} )"
+}
 
 # credits : https://github.com/jasperes/bash-yaml
-
 parse_yaml() {
     local yaml_file=$1
     local prefix=$2
@@ -47,15 +80,74 @@ create_variables() {
     eval "$(parse_yaml "$yaml_file")"
 }
 
-usage(){
-    echo "TO DO usage"
+convertsecs() {
+    printf $(date -d@${1} -u +%H:%M:%S)
 }
+
+usage(){
+    echo -e "./crawl.sh <option>"
+    echo -e "-w|--website=<website_conf_name> : \t crawl a website defined in conf.yml properties"
+    echo -e "-a|--all : \t crawl all websites defined in conf.yml properties (listed in 'website_list')"
+}
+
+check_conf(){
+    conf+=(websites_${1}_domain)
+    conf+=(websites_${1}_sitemap)
+    conf+=(websites_${1}_output_file)
+    for i in ${conf[*]}; do
+        if [ -z ${!i} ];then
+        printf "\t${Red}'${i}' is unset or doesn't exist.
+            Please check its existence and provide it in 'conf.yml' file.
+            Quitting...${Color_Off}\n"
+            exit 1
+        fi;
+    done
+}
+
+# crawl site in sitemap
+# $1 : site name in conf.yml
+crawl_site(){
+    domain=websites_${1}_domain
+    sitemap=websites_${1}_sitemap
+    output=websites_${1}_output_file
+    crawl_sitemap="${!domain}/${!sitemap}"
+    only_404=websites_${1}_404_only
+    output="${result_dir}/${!output}"
+
+    echo "crawling ${crawl_sitemap}"
+    [[ "${!only_404}" == 'true' ]] && errored_only=0
+    [ $errored_only ] \
+        && echo "getting only 404 error pages" \
+        || echo "getting all"
+
+    echo "fetching page list..."
+    site_list=$(curl -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
+    site_count=$(echo "$site_list" | wc -l)
+    time=$({ time curl "${site_list[0]}" -s -o /dev/null -w "%{url_effective},%{http_code}\n" 1>&3 2>&4;} 2>&1 | awk -F'[sm]' '/user/{print $3}')
+    estimated=$(echo ${site_count}*${time}*10 | bc)
+    SECONDS=0
+    counter=1
+    rm ${output} 2> /dev/null
+
+    echo "Number of pages to crawl : ${site_count}"
+    echo "Estimated time : $(convertsecs $estimated)"
+    for i in ${site_list};do
+        [ $errored_only ] \
+            && curl ${i} -s -o /dev/null -w "%{url_effective},%{http_code}\n" | grep ",404" >> ${output} \
+            || curl ${i} -s -o /dev/null -w "%{url_effective},%{http_code}\n" >> ${output}
+
+        count_404=$(tail -1 ${output}  | grep ",404" | wc -l)
+        ProgressBar ${counter} ${site_count} "found ${count_404} 404errors"
+        counter=$((counter + 1))
+    done
+    echo "Crawl finished! see results in '${result_dir}/${!output}'"
+}
+
 
 if [ "$#" -eq 0 ]; then
     usage
     exit
 fi
-
 
 for i in "$@";do
     case $i in
@@ -64,6 +156,10 @@ for i in "$@";do
         ;;
         -a|--all)
         ALL=0
+        ;;
+        -h|--help)
+        usage
+        exit
         ;;
         *)
         usage
@@ -74,20 +170,14 @@ done
 
 
 create_variables conf.yml
-domain=websites_${WEB}_domain
-sitemap=websites_${WEB}_sitemap
-output=websites_${WEB}_output_file
+mkdir ${result_dir} 2> /dev/null
 
-for i in ${!websites_i};do
-    echo $i
-done
-
-crawl_sitemap="${!domain}/${!sitemap}"
-
-echo ${crawl_sitemap}
-echo ${!output}
-exit 1
-#curl -s http://www.hec.$1/sitemap-fr.xml
-#$1 | grep -Po 'http(s?)://[^ \"()\<>]*' > 30-10-2017-hec.edu-sitemap.txt
-
-curl -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*' | xargs -n 1 curl -s -o /dev/null -w "%{url_effective},%{http_code}\n" | grep ",404" > `date +%d-%m-%Y`-404bis-hec.fr-sitemap.txt
+if [ $ALL ];then
+    for i in ${websites_list[*]};do
+        check_conf $i
+        crawl_site $i
+    done
+else
+    check_conf ${WEB}
+    crawl_site ${WEB}
+fi

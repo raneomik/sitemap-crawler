@@ -1,0 +1,13 @@
+websites:
+  list:
+    - example
+    - dummy
+
+  example:
+    domain: http://www.example;com
+    sitemap: sitemap.xml
+    output_file: `date +%d-%m-%Y`-example-sitemap.txt
+  dummy:
+    domain: http://www.dummy.org
+    sitemap: sitemap.xml
+    output_file: `date +%d-%m-%Y`-dummy-sitemap.txt
