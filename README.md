@@ -1,6 +1,7 @@
 # Sitemap bash crawler
 
-bash tool to crawl websites page links in a sitemap.xml
+bash tool to crawl websites page links in a sitemap.xml.
+Shows estimated time, crawl real-time progress and is configured with a human-friendly YAML file
 
 ### usage :
 
