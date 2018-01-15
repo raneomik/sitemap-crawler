@@ -1,11 +1,11 @@
 #!/bin/bash
 
-Color_Off='\033[0m'       # Text Reset
-Black='\033[0;30m'        # Black
-Red='\033[0;31m'          # Red
-Green='\033[0;32m'        # Green
-Yellow='\033[0;33m'       # Yellow
-Blue='\033[0;34m'         # Blue
+Color_Off='\033[0m'     # Text Reset
+Black='\033[0;30m'      # Black
+Red='\033[0;31m'        # Red
+Green='\033[0;32m'      # Green
+Yellow='\033[0;33m'     # Yellow
+Blue='\033[0;34m'       # Blue
 Purple='\033[0;35m'       # Purple
 Cyan='\033[0;36m'         # Cyan
 White='\033[0;37m'        # White
@@ -85,6 +85,7 @@ usage(){
 }
 
 check_conf(){
+    local -a conf
     conf+=(websites_${1}_domain)
     conf+=(websites_${1}_sitemap)
     conf+=(websites_${1}_output_file)
@@ -101,6 +102,7 @@ check_conf(){
 # crawl website's sitemap
 # $1 : site name in conf.yml
 crawl_site(){
+    check_conf ${1}
     domain=websites_${1}_domain
     sitemap=websites_${1}_sitemap
     output=websites_${1}_output_file
@@ -138,7 +140,7 @@ crawl_site(){
         counter=$((counter + 1))
     done
     echo
-    echo "Crawl finished! see results in '${result_dir}/${!output}'"
+    echo "Crawl finished! see results in '${output}'"
 }
 
 
@@ -172,10 +174,8 @@ mkdir ${result_dir} 2> /dev/null
 
 if [ $ALL ];then
     for i in ${websites_list[*]};do
-        check_conf $i
-        crawl_site $i
+        crawl_site ${i}
     done
 else
-    check_conf ${WEB}
     crawl_site ${WEB}
 fi
