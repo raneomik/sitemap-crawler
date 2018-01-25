@@ -118,7 +118,7 @@ crawl_site(){
         || echo "checking all sitemap"
 
     echo "fetching page list..."
-    site_list=$(curl -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
+    site_list=$(curl --insecure -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
     site_count=$(echo "$site_list" | wc -l)
     time=$({ time curl "${site_list[0]}" -s -o /dev/null -w "%{url_effective},%{http_code}\n" 1>&3 2>&4;} 2>&1 | awk -F'[sm]' '/user/{print $3}')
     estimated=$(echo ${site_count}*${time}*10 | bc)
