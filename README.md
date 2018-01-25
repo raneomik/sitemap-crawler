@@ -16,7 +16,7 @@ Shows estimated time, crawl real-time progress and is configured with a human-fr
 
 ### Conf.yml file :
 
-the crawl.sh reads the conf.yml file, which has to have the following structure :
+the `crawler.sh` reads the conf.yml file, which has to have the following structure :
 
 ```yml
 websites:
@@ -35,6 +35,14 @@ websites:
     output_file: `date +%d-%m-%Y`-dummy-sitemap.txt
 ```
 
+The resutls will be recorded in `result` dir and file given in `output_file` conf parameter.
+It'll have the following format:
+
+    [checked url],[http response code]
+
+
+
+original idea goes to [ReaperSoon](ttps://github.com/ReaperSoon/)
 
 ---
 
