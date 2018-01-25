@@ -5,7 +5,7 @@ Shows estimated time, crawl real-time progress and is configured with a human-fr
 
 ### usage :
 
-    ./crawl.sh <option>
+    ./crawler.sh <option>
 
 ### options :
 
