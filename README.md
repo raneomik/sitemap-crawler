@@ -29,6 +29,10 @@ websites:
     sitemap: sitemap.xml            # sitemaps filename
     output_file: `date +%d-%m-%Y`-example-sitemap.txt # where to store results (relative to 'results' directory, that will be created)
     404_only: true                  #[optional] store only 404 error pages
+    htaccess:                       #needed if websites under htaccess protection
+      user: user
+      pass: pass
+
   dummy:
     domain: http://www.dummy.org
     sitemap: sitemap.xml

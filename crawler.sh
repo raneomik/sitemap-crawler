@@ -79,7 +79,7 @@ convertsecs() {
 }
 
 usage(){
-    echo -e "./crawl.sh <option>"
+    echo -e "./crawler.sh <option>"
     echo -e "-a|--all : \t\t\t crawl all websites defined in conf.yml properties (listed in 'website_list')"
     echo -e "-w|--website=<website_conf_name> :  crawl a website defined in conf.yml properties"
 }
@@ -108,6 +108,15 @@ crawl_site(){
     output=websites_${1}_output_file
     output="${result_dir}/${!output}"
 
+    if [ -n websites_${1}_htaccess_user ];then
+        htaccess_user=websites_${1}_htaccess_user
+        htaccess_pass=websites_${1}_htaccess_pass
+        htacc_option="-u ${!htaccess_user}:${!htaccess_pass}"
+        htaccess_on=0
+    else
+        htacc_option=''
+    fi
+
     only_404=websites_${1}_404_only
     crawl_sitemap="${!domain}/${!sitemap}"
 
@@ -118,7 +127,7 @@ crawl_site(){
         || echo "checking all sitemap"
 
     echo "fetching page list..."
-    site_list=$(curl --insecure -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
+    site_list=$(curl --insecure ${htacc_option} -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
     site_count=$(echo "$site_list" | wc -l)
     time=$({ time curl "${site_list[0]}" -s -o /dev/null -w "%{url_effective},%{http_code}\n" 1>&3 2>&4;} 2>&1 | awk -F'[sm]' '/user/{print $3}')
     estimated=$(echo ${site_count}*${time}*10 | bc)
@@ -131,8 +140,8 @@ crawl_site(){
     echo "Estimated time : $(convertsecs $estimated)"
     for i in ${site_list};do
         [ $errored_only ] \
-            && curl ${i} -s -o /dev/null -w "%{url_effective},%{http_code}\n" | grep ",404" >> ${output} \
-            || curl ${i} -s -o /dev/null -w "%{url_effective},%{http_code}\n" >> ${output}
+            && curl ${i} --insecure -s -o /dev/null -w "%{url_effective},%{http_code}\n" ${htacc_option} | grep ",404" >> ${output} \
+            || curl ${i} --insecure -s -o /dev/null -w "%{url_effective},%{http_code}\n" ${htacc_option} >> ${output}
 
         tail -1 ${output} | grep ",404" &> /dev/null
         [ $? == 0 ] && count_404=$((count_404 + 1))
