@@ -13,6 +13,7 @@ Shows estimated time, crawl real-time progress and is configured with a human-fr
 |:-----:|:-------|:----:|
 |-w/--website=<website_conf_name> | crawl a website defined in conf.yml properties | yes (no if -a provided)|
 |-a/--all | crawl all websites listed in website_list and in website properties| yes (no if -w provided)|
+|-cp/--compare-only| crawl a provided file with url list and check if present in sitemap | no |
 
 ### Conf.yml file :
 
@@ -37,6 +38,9 @@ websites:
     domain: http://www.dummy.org
     sitemap: sitemap.xml
     output_file: `date +%d-%m-%Y`-dummy-sitemap.txt
+    csv_comparison:         #[optional]
+      file: input/dummy.csv # required file to read check if urls (1st col) are present in sitemap
+      col_separator: ;      # required - character used to separate data in .csv file
 ```
 
 The resutls will be recorded in `result` dir and file given in `output_file` conf parameter.

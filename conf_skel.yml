@@ -8,7 +8,7 @@ websites:
     sitemap: sitemap.xml            # sitemaps filename
     output_file: `date +%d-%m-%Y`-example-sitemap.txt # where to store results (relative to 'results' directory, that will be created)
     404_only: true                  #[optional] store only 404 error pages
-    htaccess:
+    htaccess:                       #[optional] required for htaccess protected pages
       user: user
       pass: pass
 
@@ -16,3 +16,6 @@ websites:
     domain: http://www.dummy.org
     sitemap: sitemap.xml
     output_file: `date +%d-%m-%Y`-dummy-sitemap.txt
+    csv_comparison:         #[optional]
+      file: input/dummy.csv # required file to read check if urls (1st col) are present in sitemap
+      col_separator: ;      # required - character used to separate data in .csv file

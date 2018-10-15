@@ -82,6 +82,7 @@ usage(){
     echo -e "./crawler.sh <option>"
     echo -e "-a|--all : \t\t\t crawl all websites defined in conf.yml properties (listed in 'website_list')"
     echo -e "-w|--website=<website_conf_name> :  crawl a website defined in conf.yml properties"
+    echo -e "-cp|--compare-only :  /!\ -w param is required"
 }
 
 check_conf(){
@@ -152,6 +153,56 @@ crawl_site(){
     echo "Crawl finished! see results in '${output}'"
 }
 
+compare_sitemap_csv() {
+    check_conf ${1}
+    domain=websites_${1}_domain
+    sitemap=websites_${1}_sitemap
+    output=websites_${1}_output_file
+    output="${result_dir}/${!output}"
+    input_file=websites_${1}_csv_comparison_file
+    input_separator=websites_${1}_csv_comparison_col_separator
+
+    if [ -n websites_${1}_htaccess_user ];then
+        htaccess_user=websites_${1}_htaccess_user
+        htaccess_pass=websites_${1}_htaccess_pass
+        htacc_option="-u ${!htaccess_user}:${!htaccess_pass}"
+        htaccess_on=0
+    else
+        htacc_option=''
+    fi
+
+    crawl_sitemap="${!domain}/${!sitemap}"
+
+    echo "crawling ${crawl_sitemap}"
+
+    echo "fetching page list..."
+    site_list=$(curl --insecure ${htacc_option} -s ${crawl_sitemap} | grep -Po 'http(s?)://[^ \"()\<>]*')
+    site_count=$(echo "$site_list" | wc -l)
+    time=$({ time curl "${site_list[0]}" -s -o /dev/null -w "%{url_effective},%{http_code}\n" 1>&3 2>&4;} 2>&1 | awk -F'[sm]' '/user/{print $3}')
+    estimated=$(echo ${site_count}*${time}*10 | bc)
+    SECONDS=0
+    counter=1
+    rm ${output} 2> /dev/null
+
+    while IFS=${!input_separator} read -r url other
+    do
+        for i in ${site_list};do
+            if [ "$i" == "$url" ]; then
+              found=0
+              break
+            fi
+        done
+
+        if [ $found ];then
+            echo "OK! $url found in sitemap" >> ${output}
+        else
+            echo "KO - $url not found in sitemap" >> ${output}
+        fi
+
+
+    done < "${!input_file}"
+}
+
 
 if [ "$#" -eq 0 ]; then
     usage
@@ -165,6 +216,9 @@ for i in "$@";do
         ;;
         -a|--all)
         ALL=0
+        ;;
+        -cp|--compare-only)
+        COMPARISON=0
         ;;
         -h|--help)
         usage
@@ -181,10 +235,19 @@ done
 create_variables conf.yml
 mkdir ${result_dir} 2> /dev/null
 
-if [ $ALL ];then
-    for i in ${websites_list[*]};do
-        crawl_site ${i}
-    done
+if [ $COMPARISON ];then
+    if [ ! $WEB ];then
+        usage
+        exit
+    fi
+
+    compare_sitemap_csv ${WEB}
 else
-    crawl_site ${WEB}
+    if [ $ALL ];then
+        for i in ${websites_list[*]};do
+            crawl_site ${i}
+        done
+    else
+        crawl_site ${WEB}
+    fi
 fi
